@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'jenkins-agent-my-app'
+      label 'jenkins-agent-my-app'  // Nom du pod-agent Jenkins
       yaml """
 apiVersion: v1
 kind: Pod
@@ -11,22 +11,25 @@ metadata:
 spec:
   containers:
   - name: python
-    image: python:3.7
+    image: python:3.7            # Image python utilisée pour les étapes
     command:
-    - cat
+    - cat                        # Maintient le container actif
     tty: true
 """
     }
   }
+
   stages {
     stage('Test python') {
       steps {
         container('python') {
+          // Installe les dépendances depuis requirements.txt
           sh "pip install -r requirements.txt"
+
+          // Lance les tests unitaires Python
           sh "python test.py"
         }
       }
     }
   }
 }
-
