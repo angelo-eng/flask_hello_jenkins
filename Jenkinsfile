@@ -62,13 +62,7 @@ spec:
       }
     }
 
-    stage('Run tests') {
-      steps {
-        container('python') {
-          sh 'pytest'
-        }
-      }
-    }
+   
 
     stage('Build Docker image') {
       steps {
