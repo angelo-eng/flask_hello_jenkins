@@ -58,6 +58,14 @@ spec:
         }
       }
     }
+    stage('Setup SSH known_hosts') {
+  steps {
+    container('python') { // ou autre container dans ton pod agent qui a bash/ssh
+      sh 'mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts'
+    }
+  }
+}
+
 
     stage('Deploy to Kubernetes') {
       steps {
