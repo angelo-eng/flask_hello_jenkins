@@ -1,13 +1,13 @@
 pipeline {
   agent {
     kubernetes {
-      label 'jenkins-agent-my-app'
+      label 'jenkins-agent'
       yaml """
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    component: ci
+    some-label: jenkins-agent
 spec:
   containers:
   - name: python
@@ -15,26 +15,90 @@ spec:
     command:
     - cat
     tty: true
+  - name: docker
+    image: docker:20.10.16-dind
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  - name: kubectl
+    image: lachlanevenson/k8s-kubectl:v1.27.1
+    command:
+    - cat
+    tty: true
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
 """
     }
   }
-  stage('Setup SSH known_hosts') {
-  steps {
-    container('python') { // ou autre container dans ton pod agent qui a bash/ssh
-      sh 'mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts'
-    }
-  }
-}
-
   stages {
-    stage('Test python') {
+    stage('Setup SSH known_hosts') {
       steps {
         container('python') {
-          sh "pip install -r requirements.txt"
-          sh "python test.py"
+          sh '''
+            mkdir -p ~/.ssh
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+          '''
+        }
+      }
+    }
+  stages {
+    stage('Checkout') {
+      steps {
+        container('python') {
+          git branch: 'feature1', url: 'git@github.com:angelo-eng/flask_hello_jenkins.git'
+        }
+      }
+    }
+
+    stage('Install dependencies') {
+      steps {
+        container('python') {
+          sh 'pip install -r flask_hello_jenkins/requirements.txt'
+        }
+      }
+    }
+
+    stage('Run tests') {
+      steps {
+        container('python') {
+          sh 'pytest'
+        }
+      }
+    }
+
+    stage('Build Docker image') {
+      steps {
+        container('docker') {
+          sh 'docker build -t flask-jenkins-app flask_hello_jenkins/'
+        }
+      }
+    }
+
+    stage('Push Docker image') {
+      steps {
+        container('docker') {
+          withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh '''
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+              docker tag flask-jenkins-app $DOCKER_USER/flask-jenkins-app:latest
+              docker push $DOCKER_USER/flask-jenkins-app:latest
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
+      steps {
+        container('kubectl') {
+          sh 'kubectl apply -f flask_hello_jenkins/kubernetes/deployment.yaml'
+          sh 'kubectl apply -f flask_hello_jenkins/kubernetes/service.yaml'
         }
       }
     }
   }
 }
-
