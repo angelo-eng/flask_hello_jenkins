@@ -67,27 +67,7 @@ spec:
       }
     }
 
-    stage('Build Docker image') {
-      steps {
-        container('docker') {
-          sh 'docker build -t flask-jenkins-app flask_hello_jenkins/'
-        }
-      }
-    }
 
-    stage('Push Docker image') {
-      steps {
-        container('docker') {
-          withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-            sh '''
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-              docker tag flask-jenkins-app $DOCKER_USER/flask-jenkins-app:latest
-              docker push $DOCKER_USER/flask-jenkins-app:latest
-            '''
-          }
-        }
-      }
-    }
 
     stage('Deploy to Kubernetes') {
       steps {
