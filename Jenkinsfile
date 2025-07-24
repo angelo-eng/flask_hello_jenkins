@@ -50,7 +50,11 @@ spec:
     stage('Checkout') {
       steps {
         container('python') {
-          git branch: 'feature1', url: 'git@github.com:angelo-eng/flask_hello_jenkins.git'
+          sshagent(['github-ssh-key-id']) {
+            sh '''
+              git clone -b feature1 git@github.com:angelo-eng/flask_hello_jenkins.git
+            '''
+          }
         }
       }
     }
