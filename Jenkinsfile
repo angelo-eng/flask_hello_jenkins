@@ -50,14 +50,7 @@ spec:
       }
     }
 
-    stage('Build Docker Image') {
-      steps {
-        container('docker') {
-          sh 'docker build -t localhost:4000/pythontest:latest .'
-          sh 'docker push localhost:4000/pythontest:latest'
-        }
-      }
-    }
+
     stage('Setup SSH known_hosts') {
   steps {
     container('python') { // ou autre container dans ton pod agent qui a bash/ssh
