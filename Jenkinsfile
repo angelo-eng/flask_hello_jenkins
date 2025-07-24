@@ -34,6 +34,7 @@ spec:
 """
     }
   }
+
   stages {
     stage('Setup SSH known_hosts') {
       steps {
@@ -45,7 +46,7 @@ spec:
         }
       }
     }
-  stages {
+
     stage('Checkout') {
       steps {
         container('python') {
@@ -61,8 +62,6 @@ spec:
         }
       }
     }
-
-   
 
     stage('Build Docker image') {
       steps {
