@@ -1,13 +1,11 @@
 pipeline {
   agent {
     kubernetes {
-      label 'jenkins-agent'
+      label 'python-agent'
+      defaultContainer 'python'
       yaml """
 apiVersion: v1
 kind: Pod
-metadata:
-  labels:
-    some-label: jenkins-agent
 spec:
   containers:
   - name: python
@@ -15,65 +13,14 @@ spec:
     command:
     - cat
     tty: true
-  - name: docker
-    image: docker:20.10.16-dind
-    securityContext:
-      privileged: true
-    volumeMounts:
-    - name: docker-sock
-      mountPath: /var/run/docker.sock
-  - name: kubectl
-    image: lachlanevenson/k8s-kubectl:v1.27.1
-    command:
-    - cat
-    tty: true
-  volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
 """
     }
   }
-
   stages {
-    stage('Setup SSH known_hosts') {
+    stage('Test Python') {
       steps {
         container('python') {
-          sh '''
-            mkdir -p ~/.ssh
-            ssh-keyscan github.com >> ~/.ssh/known_hosts
-          '''
-        }
-      }
-    }
-
-    stage('Checkout') {
-      steps {
-        container('python') {
-          sshagent(['github-ssh-key-id']) {
-            sh '''
-              git clone -b feature1 git@github.com:angelo-eng/flask_hello_jenkins.git
-            '''
-          }
-        }
-      }
-    }
-
-    stage('Install dependencies') {
-      steps {
-        container('python') {
-          sh 'pip install -r flask_hello_jenkins/requirements.txt'
-        }
-      }
-    }
-
-
-
-    stage('Deploy to Kubernetes') {
-      steps {
-        container('kubectl') {
-          sh 'kubectl apply -f flask_hello_jenkins/kubernetes/deployment.yaml'
-          sh 'kubectl apply -f flask_hello_jenkins/kubernetes/service.yaml'
+          sh 'python --version'
         }
       }
     }
